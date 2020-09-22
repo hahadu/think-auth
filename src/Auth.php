@@ -14,7 +14,7 @@
  *  | Description:  a low phper
  *  +----------------------------------------------------------------------
  **/
-namespace hahadu\thinkAuth;
+namespace Hahadu\ThinkAuth;
 use think\facade\Request;
 use think\facade\Config;
 use think\facade\Session;

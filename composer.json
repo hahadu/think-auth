@@ -1,0 +1,25 @@
+{
+    "name": "hahadu/think-auth",
+    "description": "基于tp3修改的thinkphp6-auth模块",
+    "type": "library",
+    "require": {
+        "php": ">=7.0"
+    },
+    "require-dev": {
+        "php": ">=7.0"
+
+    },
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "hahadu",
+            "email": "582167246@qq.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Hahadu\\ThinkAuth\\": "src/"
+        }
+    },
+        "minimum-stability": "dev"
+}
