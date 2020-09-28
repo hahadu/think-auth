@@ -1,7 +1,7 @@
 <?php
 /**
  *  +----------------------------------------------------------------------
- *  | Created by  hahadu
+ *  | Created by  hahadu (a low phper and coolephp)
  *  +----------------------------------------------------------------------
  *  | Copyright (c) 2020. [hahadu] All rights reserved.
  *  +----------------------------------------------------------------------
@@ -9,20 +9,19 @@
  *  +----------------------------------------------------------------------
  *  | Author: hahadu <582167246@qq.com>
  *  +----------------------------------------------------------------------
- *  | Date: 2020/9/15 下午6:25
+ *  | Date: 2020/9/28 下午6:01
  *  +----------------------------------------------------------------------
- *  | Description:  a low phper
+ *  | Description:   cooleAdmin 基于tp3修改的ThinkPHP6的权限验证类
  *  +----------------------------------------------------------------------
  **/
 namespace Hahadu\ThinkAuth;
-use think\facade\Request;
+
 use think\facade\Config;
-use think\facade\Session;
 use think\facade\Db;
+use think\facade\Request;
 
 /**
  * 权限认证类
- * 基于3.x版本修改
  * 功能特性：
  * 1，是对规则进行认证，不是对节点进行认证。用户可以把节点当作规则名称实现对节点进行认证。
  *      $auth=new Auth();  $auth->check('规则名称','用户id')
@@ -88,152 +87,142 @@ class Auth
         'AUTH_GROUP'        => 'auth_group', // 用户组数据表名
         'AUTH_GROUP_ACCESS' => 'auth_group_access', // 用户-用户组关系表
         'AUTH_RULE'         => 'auth_rule', // 权限规则表
-        'AUTH_USER'         => 'auth_user', // 用户信息表
-		
+        'AUTH_USER'         => 'member', // 用户信息表
     );
 
-    /**
-     * 构造函数
-     * Auth constructor.
-     */
     public function __construct()
     {
-        if ($auth = Config::get('auth')) {
-            $this->_config = array_merge($this->_config, $auth);
+        $prefix                             = Config::get('database.connections.mysql.prefix'); 
+        $this->_config['AUTH_GROUP']        = $prefix . $this->_config['AUTH_GROUP'];
+        $this->_config['AUTH_RULE']         = $prefix . $this->_config['AUTH_RULE'];
+        $this->_config['AUTH_USER']         = $prefix . $this->_config['AUTH_USER'];
+        $this->_config['AUTH_GROUP_ACCESS'] = $prefix . $this->_config['AUTH_GROUP_ACCESS'];
+        if (Config::get('auth')) {
+            //可设置配置项 AUTH_CONFIG, 此配置项为数组。
+            $this->_config = array_merge($this->_config, Config::get('auth'));
         }
     }
-    /**
-     * 初始化
-     * access public
-     * @param array $options 参数
-     * return \think\Request
-     */
-    public static function instance($options = [])
-    {
-        if (is_null(self::$instance)) {
-            self::$instance = new static($options);
-        }
-        return self::$instance;
-    }
+
     /**
      * 检查权限
-     * @param $name string|array  需要验证的规则列表,支持逗号分隔的权限规则或索引数组
-     * @param $uid  int           认证用户的id
-     * @param int $type 认证类型
-     * @param string $mode 执行check的模式
-     * @param string $relation 如果为 'or' 表示满足任一条规则即通过验证;如果为 'and'则表示需满足所有规则才能通过验证
-     * return bool               通过验证返回true;失败返回false
+     * @param name string|array  需要验证的规则列表,支持逗号分隔的权限规则或索引数组
+     * @param uid  int           认证用户的id
+     * @param string mode        执行check的模式
+     * @param relation string    如果为 'or' 表示满足任一条规则即通过验证;如果为 'and'则表示需满足所有规则才能通过验证
+     * @return boolean           通过验证返回true;失败返回false
      */
     public function check($name, $uid, $type = 1, $mode = 'url', $relation = 'or')
     {
         if (!$this->_config['AUTH_ON']) {
             return true;
         }
-        // 获取用户需要验证的所有有效规则列表
-        $authList = $this->getAuthList($uid, $type);
+
+        $authList = $this->getAuthList($uid, $type); //获取用户需要验证的所有有效规则列表
         if (is_string($name)) {
             $name = strtolower($name);
             if (strpos($name, ',') !== false) {
                 $name = explode(',', $name);
             } else {
-                $name = [$name];
+                $name = array($name);
             }
         }
-        $list = []; //保存验证通过的规则名
+        $list = array(); //保存验证通过的规则名
         if ('url' == $mode) {
-            $REQUEST = unserialize(strtolower(serialize(Request::param())));
+            $REQUEST = unserialize(strtolower(serialize($_REQUEST)));
         }
         foreach ($authList as $auth) {
             $query = preg_replace('/^.+\?/U', '', $auth);
             if ('url' == $mode && $query != $auth) {
                 parse_str($query, $param); //解析规则中的param
                 $intersect = array_intersect_assoc($REQUEST, $param);
-                $auth = preg_replace('/\?.*$/U', '', $auth);
+                $auth      = preg_replace('/\?.*$/U', '', $auth);
                 if (in_array($auth, $name) && $intersect == $param) {
                     //如果节点相符且url参数满足
                     $list[] = $auth;
+
                 }
-            } else {
-                if (in_array($auth, $name)) {
-                    $list[] = $auth;
-                }
+            } else if (in_array($auth, $name)) {
+                $list[] = $auth;
             }
         }
-        if ('or' == $relation && !empty($list)) {
+        if ('or' == $relation and !empty($list)) {
             return true;
         }
+   //     dump($list);
         $diff = array_diff($name, $list);
-        if ('and' == $relation && empty($diff)) {
+        if ('and' == $relation and empty($diff)) {
             return true;
         }
         return false;
     }
+
     /**
      * 根据用户id获取用户组,返回值为数组
-     * @param  $uid int     用户id
-     * return array       用户所属的用户组 array(
+     * @param  uid int     用户id
+     * @return array       用户所属的用户组 array(
      *     array('uid'=>'用户id','group_id'=>'用户组id','title'=>'用户组名称','rules'=>'用户组拥有的规则id,多个,号隔开'),
      *     ...)
      */
     public function getGroups($uid)
     {
-        static $groups = [];
+        static $groups = array();
         if (isset($groups[$uid])) {
             return $groups[$uid];
         }
-        // 转换表名
-        $auth_group_access = $this->_config['AUTH_GROUP_ACCESS'];
-        $auth_group = $this->_config['AUTH_GROUP'];
-        // 执行查询
-        $user_groups = Db::view($auth_group_access, 'uid,group_id')
-            ->view($auth_group, 'title,rules', "{$auth_group_access}.group_id={$auth_group}.id", 'LEFT')
-            ->where("{$auth_group_access}.uid='{$uid}' and {$auth_group}.status='1'")
-            ->select();
-        $groups[$uid] = $user_groups ?: [];
+        $user_groups = Db::table($this->_config['AUTH_GROUP_ACCESS'])
+            ->alias('a')
+            ->where("a.uid='$uid' and g.status='1'")
+            ->join($this->_config['AUTH_GROUP'] . " g "," a.group_id=g.id")
+            ->field('uid,group_id,title,rules')->select();
+        $groups[$uid] = $user_groups ?: array();
         return $groups[$uid];
     }
+
     /**
      * 获得权限列表
-     * @param integer $uid 用户id
+     * @param integer $uid  用户id
      * @param integer $type
-     * return array
      */
     protected function getAuthList($uid, $type)
     {
-        static $_authList = []; //保存用户验证通过的权限列表
-        $t = implode(',', (array)$type);
+        static $_authList = array(); //保存用户验证通过的权限列表
+        $t                = implode(',', (array) $type);
         if (isset($_authList[$uid . $t])) {
             return $_authList[$uid . $t];
         }
-        if (2 == $this->_config['AUTH_TYPE'] && Session::has('_auth_list_' . $uid . $t)) {
-            return Session::get('_auth_list_' . $uid . $t);
+        if (2 == $this->_config['AUTH_TYPE'] && isset($_SESSION['_AUTH_LIST_' . $uid . $t])) {
+            return $_SESSION['_AUTH_LIST_' . $uid . $t];
         }
+
         //读取用户所属用户组
         $groups = $this->getGroups($uid);
-        $ids = []; //保存用户所属用户组设置的所有权限规则id
+        $ids    = array(); //保存用户所属用户组设置的所有权限规则id
         foreach ($groups as $g) {
             $ids = array_merge($ids, explode(',', trim($g['rules'], ',')));
         }
         $ids = array_unique($ids);
         if (empty($ids)) {
-            $_authList[$uid . $t] = [];
-            return [];
+            $_authList[$uid . $t] = array();
+            return array();
         }
-        $map = [
-            ['type','=',$type],
-            ['id','in', $ids],
-            //['status','=',1],
-        ];
+
+        $map = array(
+            [ 'id' , 'in', $ids],
+            [ 'type' , '=' ,1],
+            [ 'status' ,'=', 1 ],
+        );
         //读取用户组所有权限规则
-        $rules = Db::name($this->_config['AUTH_RULE'])->where($map)->field('condition,name')->select();
+        $rules = Db::table($this->_config['AUTH_RULE'])->where($map)->field('condition,name')->select();
+
         //循环规则，判断结果。
-        $authList = []; //
+        $authList = array(); //
         foreach ($rules as $rule) {
             if (!empty($rule['condition'])) {
                 //根据condition进行验证
                 $user = $this->getUserInfo($uid); //获取用户信息,一维数组
+
                 $command = preg_replace('/\{(\w*?)\}/', '$user[\'\\1\']', $rule['condition']);
-                //dump($command); //debug
+                //dump($command);//debug
                 @(eval('$condition=(' . $command . ');'));
                 if ($condition) {
                     $authList[] = strtolower($rule['name']);
@@ -246,43 +235,21 @@ class Auth
         $_authList[$uid . $t] = $authList;
         if (2 == $this->_config['AUTH_TYPE']) {
             //规则列表结果保存到session
-            Session::set('_auth_list_' . $uid . $t, $authList);
+            $_SESSION['_AUTH_LIST_' . $uid . $t] = $authList;
         }
         return array_unique($authList);
     }
+
     /**
-     * 获得用户资料,根据自己的情况读取数据库 
+     * 获得用户资料,根据自己的情况读取数据库
      */
-    function getUserInfo($uid)
+    protected function getUserInfo($uid)
     {
-        static $userinfo = [];
-        $user = Db::name($this->_config['AUTH_USER']);
-        // 获取用户表主键
-        $_pk = is_string($user->getPk()) ? $user->getPk() : 'uid';
+        static $userinfo = array();
         if (!isset($userinfo[$uid])) {
-            $userinfo[$uid] = $user->where($_pk, $uid)->find();
+            $userinfo[$uid] = Db::where(array('uid' => $uid))->table($this->_config['AUTH_USER'])->find();
         }
         return $userinfo[$uid];
-    }
-    //根据uid获取角色名称
-     function getRole($uid){
-        try{
-            $gid =  Db::name($this->_config['AUTH_GROUP_ACCESS'])->where('uid',$uid)->find()->group_id;
-            $title =   Db::name($this->_config['AUTH_GROUP'])->where('id',$gid)->find()->title;
-            return $title;
-        }catch (\Exception $e){
-            return 'The user has not been granted permission';
-        }
-
-    }
-    /**
-     * 授予用户权限
-     */
-    public   function  setRole($uid,$group_id){
-        $res =  Db::name('auth_group_access')
-            ->where('uid',$uid)
-            ->update(['group_id'=>$group_id]);
-        return true;
     }
 
 }
