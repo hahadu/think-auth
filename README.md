@@ -3,6 +3,9 @@
 安装：composer require hahadu/think-auth
 使用方法与tp3一至：
 ```
+use Hahadu\ThinkAuth\Auth; 
+
+        $auth = new Auth();
         $check_result = $auth->check('应用名'.'/'.控制器名'.'/'.'操作名',get_uid()); //详请见底部规则说明
         if(!$check_result){
             return '您没有权限访问';
