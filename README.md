@@ -5,10 +5,8 @@
 ```
         $check_result = $auth->check('应用名'.'/'.控制器名'.'/'.'操作名',get_uid()); //详请见底部规则说明
         if(!$check_result){
-            redirect('/inde');
-           // echo "<script>window.location.replace($request->url('/index/jump_page?code=420102&jump_url=/admin/login'))</script>";
-           // jumpPag(300001,'/index');
-        }
+            return '您没有权限访问';
+         }
 ```
 创建数据表：
 ```
