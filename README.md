@@ -6,7 +6,7 @@
 use Hahadu\ThinkAuth\Auth; 
 
         $auth = new Auth();
-        $check_result = $auth->check('应用名'.'/'.控制器名'.'/'.'操作名',用户ID); //详请见底部规则说明
+        $check_result = $auth->check('当前应用名'.'/'.‘当前控制器名'.'/'.'当前操作名',用户ID); //详请见底部规则说明
         if(!$check_result){
             return '您没有权限访问';
          }
