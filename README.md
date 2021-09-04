@@ -12,8 +12,22 @@ use Hahadu\ThinkAuth\Auth;
          }
 ```
 创建数据表：
+命令行制动创建
+配置config/console.php 文件
+```php 
+return [
+    // 指令定义
+    'commands' => [
+        'createAuth' => \Hahadu\ThinkAuth\Command\CreateAuth::class
+    ],
+];
 ```
-//数据库
+命令行执行 
+```shell
+php think createAuth
+```
+```
+//手动创建数据库
 /*
 -- ----------------------------
 -- think_auth_rule，规则表，
