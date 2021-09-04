@@ -11,10 +11,11 @@ use Hahadu\ThinkAuth\Auth;
             return '您没有权限访问';
          }
 ```
-创建数据表：
+### 创建数据表：
 
-命令行自动创建
-配置config/console.php 文件
+#### 命令行自动创建
+
+##### 1.配置config/console.php 文件
 ```php 
 return [
     // 指令定义
@@ -23,12 +24,12 @@ return [
     ],
 ];
 ```
-命令行执行 
+##### 2.命令行执行 
 ```shell
 php think createAuth
 ```
+### 手动创建数据库
 ```
-//手动创建数据库
 /*
 -- ----------------------------
 -- think_auth_rule，规则表，
