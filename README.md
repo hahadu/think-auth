@@ -1,6 +1,8 @@
 # think-auth
 基于tp3修改的thinkphp6-auth权限认证类
+
 安装：composer require hahadu/think-auth
+
 使用方法与tp3一至：
 ```
 use Hahadu\ThinkAuth\Auth; 
